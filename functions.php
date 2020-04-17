@@ -24,7 +24,7 @@ $dmeng_general_default = array(
 		'instantclick' => 0,
 		'only_first_cat' => 0,
 		'qrcode' => 1,
-		'speedup' => array('css', 'js', 'bootstrap', 'instan-tclick', 'prettify', 'grey_png', 'look'),
+		'speedup' => array('css', 'js', 'bootstrap', 'instantclick', 'prettify', 'grey_png', 'look'),
 );
 $dmeng_general_setting = json_decode(get_option('dmeng_general_setting'), true);
 $dmeng_general_setting = wp_parse_args( $dmeng_general_setting,  $dmeng_general_default);
