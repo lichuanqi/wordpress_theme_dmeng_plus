@@ -30,7 +30,7 @@ if( !empty($_GET['replytocom']) && is_numeric($_GET['replytocom']) ){
 	<?php do_action( 'comment_form_top' );?>
 	<div id="comment-user" data-user-id="<?php echo get_current_user_id();?>">
 		<?php if ( is_user_logged_in() ) { ?>
-			<p class="logged-in-help"><?php printf(__('Logged in as <a href="%1$s">%2$s</a>.'), get_edit_user_link(), $user_identity); ?> <a href="<?php echo wp_logout_url(get_permalink()); ?>" title="<?php esc_attr_e('Log out of this account'); ?>"><?php _e('Log out &raquo;'); ?></a></p>
+			<p class="logged-in-help"><?php printf(__('已登录 <a href="%1$s">%2$s</a>.'), get_edit_user_link(), $user_identity); ?> <a href="<?php echo wp_logout_url(get_permalink()); ?>" title="<?php esc_attr_e('Log out of this account'); ?>"><?php _e('登出 &raquo;'); ?></a></p>
 		<?php } else { ?>
 			<div class="form-group">
 				<label for="author" class="col-sm-2 control-label"><?php _e('名称','dmeng'); ?></label>
@@ -70,7 +70,7 @@ if( !empty($_GET['replytocom']) && is_numeric($_GET['replytocom']) ){
 				<span class="btn btn-default"  id="open-privacy-action"><span class="glyphicon glyphicon-exclamation-sign"></span> <?php _e('隐私内容','dmeng'); ?></span>
 			</div>
 			<div class="btn-group">
-				<button class="btn btn-default" name="submit" type="submit" id="commentsubmit"><?php esc_attr_e('Submit Comment'); ?></button>
+				<button class="btn btn-default" name="submit" type="submit" id="commentsubmit"><?php esc_attr_e('提交评论'); ?></button>
 			</div>
 	</div>
 	<div class="input-group has-warning" id="privacy-action" style="display:none">
