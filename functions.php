@@ -24,7 +24,7 @@ $dmeng_general_default = array(
 		'instantclick' => 0,
 		'only_first_cat' => 0,
 		'qrcode' => 1,
-		'speedup' => array('css', 'js', 'bootstrap', 'instantclick', 'prettify', 'grey_png', 'look'),
+		'speedup' => array('css', 'js', 'bootstrap', 'instan-tclick', 'prettify', 'grey_png', 'look'),
 );
 $dmeng_general_setting = json_decode(get_option('dmeng_general_setting'), true);
 $dmeng_general_setting = wp_parse_args( $dmeng_general_setting,  $dmeng_general_default);
@@ -482,20 +482,6 @@ function dmeng_post_footer(){
 	$post_excerpt = str_replace(array("\t", "\r\n", "\r", "\n"), "", strip_tags($post_excerpt)); 
 
 	echo '<div class="entry-footer clearfix" role="toolbar">';
-		echo '<div class="bd-share">';
-
-			$bdshare_output = '<div class="bdsharebuttonbox"><a class="bds_qzone" data-cmd="qzone"></a><a class="bds_tsina" data-cmd="tsina"></a><a class="bds_weixin" data-cmd="weixin"></a><a class="bds_more" data-cmd="more"></a></div>';
-			$bdshare_output .= '<script>';
-			$bdshare_output .= sprintf( "var share_excerpt = '%s';", addslashes(wp_trim_words(sprintf( '【%s】%s', esc_html(get_the_title()), $post_excerpt ), 120, '').'...' ));
-			$bdshare_output .= sprintf( "var share_pic = '%s';", dmeng_get_the_thumbnail() );
-			$bdshare_output .= sprintf( "var share_url = '%s';", add_query_arg('fid', get_current_user_id(), get_permalink()) );
-			$bdshare_output .= sprintf( "var wkey = '%s';var qkey = '%s';", get_option('dmeng_open_weibo_key', ''), get_option('dmeng_open_qq_id', '') );
-			$bdshare_output .= "window._bd_share_main = false;window._bd_share_config = { common : { bdText : share_excerpt,bdDesc : share_excerpt,bdUrl : share_url, bdPic : share_pic, bdSnsKey : {'tsina':wkey, 'tqq':qkey,'qzone':qkey} }, share : [{ 'bdStyle' : 1, 'bdSize' : 24 }] };";
-			$bdshare_output .= '</script>';
-			
-			echo $bdshare_output;
-
-		echo '</div>';
 		
 		dmeng_vote_html('post',get_the_ID()); dmeng_breadcrumb_html(get_the_ID(),' › ');
 		
