@@ -1297,3 +1297,17 @@ function dmeng_only_first_cat_callback($value){
 }
 add_filter( 'dmeng_post_meta_cat_show', 'dmeng_only_first_cat_callback' );
 add_filter( 'dmeng_the_title', 'dmeng_only_first_cat_callback' );
+
+/**
+ * 将评论中包含黑名单内容时移入回收站改为禁止提交
+ * https://www.ilxtx.com/wordpress-automatically-refuse-spam-comments.html
+ */
+function lxtx_fuck_spam_comments($comment) {
+    if (wp_blacklist_check($comment['comment_author'], $comment['comment_author_email'], $comment['comment_author_url'], $comment['comment_content'], $comment['comment_author_IP'], $comment['comment_agent'])) {
+        header("Content-type: text/html; charset=utf-8");
+        wp_die('不好意思，您的评论违反了本站的评论规则！');
+    } else {
+        return $comment;
+    }
+}
+add_filter('preprocess_comment', 'lxtx_fuck_spam_comments');
