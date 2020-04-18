@@ -61,101 +61,33 @@ function dmeng_comment_unapproved_to_approved($comment){
 }
 add_action('comment_unapproved_to_approved', 'dmeng_comment_unapproved_to_approved');
 
-//~ 评论回复邮件通知
-function dmeng_comment_mail_notify($comment_id, $comment_object){
-	
-	if( !$comment_id || $comment_object->comment_approved != 1 || !empty($comment_object->comment_type) ) return;
-	
-	$send_email = array();
-	
-	$post = get_post($comment_object->comment_post_ID);
-	$post_author_email = get_user_meta($post->post_author, 'dmeng_verify_email', true);
-	
-	$comment_link = htmlspecialchars( get_comment_link( $comment_id ) );
-	
-	//~ 移除这个替换表情的钩子
-	remove_filter('get_comment_text', 'dmeng_replace_comment_text');
-	
-	remove_shortcode( 'pem' );
-	add_shortcode( 'pem', 'dmeng_privacy_tips_for_email' );
-	
-	$comment_text = wp_trim_words( apply_filters( 'get_comment_text', $comment_object->comment_content, $comment_object, array() ), 140, '……' );
-	
-	//~ 给文章作者的通知
-	if( $comment_object->user_id != $post->post_author ){
-		$send_email[] = array(
-			'address' => $post_author_email,
-			'uid' => $post->post_author,
-			'title' => sprintf( __('%1$s在%2$s中回复你','dmeng'), $comment_object->comment_author, $post->post_title ),
-			'headline' => sprintf( __('%1$s，你好！','dmeng'), get_the_author_meta('display_name', $post->post_author) ),
-			'content' => sprintf( __('%1$s在文章<a href="%2$s" target="_blank">%3$s</a>中回复你了，快去看看吧：<br> %4$s','dmeng'), $comment_object->comment_author, $comment_link, $post->post_title, $comment_text )
-		);
-	}
-	
-	//~ 给上级评论的通知
-	if( $comment_object->comment_parent ) {
-		$comment_parent = get_comment($comment_object->comment_parent);
-		
-		if( $comment_parent->user_id && $comment_parent->user_id==$post->post_author ){
-			$comment_parent_email = $post_author_email;
-			$comment_author_email = '';
-		}else{
-			$comment_parent_email = $comment_parent->user_id ? get_user_meta($comment_parent->user_id, 'dmeng_verify_email', true) : $comment_parent->comment_author_email;
-			$comment_author_email = $comment_object->user_id ? get_user_meta($comment_object->user_id, 'dmeng_verify_email', true) : $comment_object->comment_author_email;
-		}
-
-		if( $comment_author_email != $comment_parent_email && $comment_parent_email != $post_author_email ){
-			$send_email[] = array(
-				'address' => $comment_parent_email,
-				'uid' => $comment_parent->user_id,
-				'title' => sprintf( __('%1$s在%2$s中回复你','dmeng'), $comment_object->comment_author, $post->post_title ),
-				'headline' => sprintf( __('%1$s，你好！','dmeng'), ( $comment_parent->user_id ? get_the_author_meta('display_name', $comment_parent->user_id) : $comment_parent->comment_author ) ),
-				'content' => sprintf( __('%1$s在文章<a href="%2$s" target="_blank">%3$s</a>中回复你了，快去看看吧：<br> %4$s','dmeng'), $comment_object->comment_author, $comment_link, $post->post_title, $comment_text )
-			);
-		}
-	}
-	
-	//~ 给管理员的通知
-	$admin_email = get_option('admin_email');
-	if( $post_author_email != $admin_email ){
-		$send_email[] = array(
-			'address' => $admin_email,
-			'uid' => 0,
-			'title' => sprintf( __('%1$s上的文章有了新的回复','dmeng'), get_bloginfo('name') ),
-			'headline' => sprintf( __('%1$s管理员，你好！','dmeng'), get_bloginfo('name') ),
-			'content' => sprintf( __('%1$s回复了文章<a href="%2$s" target="_blank">%3$s</a>，快去看看吧：<br> %4$s','dmeng'), $comment_object->comment_author, $comment_link, $post->post_title, $comment_text )
-		);
-	}
-	
-	if( $send_email ){
-	
-		foreach ( $send_email as $email ){
-			$content = '<h3>'.$email['headline'].'</h3>';
-			$content .= '<p>'.$email['content'].'</p>';
-			
-			//~ 添加消息通知
-			if(intval($email['uid'])>0){
-				 $msg_id = add_dmeng_message($email['uid'], 'unread', current_time('mysql'), $email['title'], $email['content']);
-				 if($msg_id) $content = str_replace($comment_link, htmlspecialchars(add_query_arg(array('msg_action'=>'read', 'msg_id'=>$msg_id, 'msg_nonce'=>dmeng_email_verify_nonce('read'.$msg_id, $email['uid'])), htmlspecialchars_decode($comment_link) )), $content );
-			}
-			
-			//~ 添加 WordPress 的邮件内容过滤钩子
-			$content = apply_filters( 'comment_notification_text', $content, $comment_id );
-			
-			//~ 如果有设置邮箱就发送邮件通知
-			if( is_email( $email['address'] ) && get_option( 'comments_notify' ) ){
-				dmeng_send_email( $email['address'], $email['title'], $content );
-			}
-		}
-		
-	}
-
+//评论通过审核回复邮件
+function comment_mail_notify($comment_id) {
+    $comment = get_comment($comment_id);
+    $parent_id = $comment->comment_parent ? $comment->comment_parent : '';
+    $spam_confirmed = $comment->comment_approved;
+    if (($parent_id != '') && ($spam_confirmed != 'spam')) {
+    $wp_email = 'no-reply@' . preg_replace('#^www\.#', '', strtolower($_SERVER['SERVER_NAME']));//发件人e-mail地址，no-reply可改为可用的e-mail
+    $to = trim(get_comment($parent_id)->comment_author_email);
+    $subject = '您在 [' . get_option("blogname") . '] 的留言有了回应';
+    $message = '<div style="border-right:#666666 1px solid;border-radius:8px;color:#111;font-size:12px;width:95%;border-bottom:#666666 1px solid;font-family:微软雅黑,arial;margin:10px auto 0px;border-top:#666666 1px solid;border-left:#666666 1px solid"><div class="adM">
+    </div><div style="width:100%;background:#666666;min-height:60px;color:white;border-radius:6px 6px 0 0"><span style="line-height:60px;min-height:60px;margin-left:30px;font-size:12px">您在<a style="color:#00bbff;font-weight:600;text-decoration:none" href="' . get_option('home') . '" target="_blank">' . get_option('blogname') . '</a> 上的留言有回复啦！</span> </div>
+    <div style="margin:0px auto;width:90%">
+    <p><span style="font-weight:bold;">' . trim(get_comment($parent_id)->comment_author) . '</span>, 您好!</p>
+    <p>您于' . trim(get_comment($parent_id)->comment_date) . ' 在文章《' . get_the_title($comment->comment_post_ID) . '》上发表评论: </p>
+    <p style="border-bottom:#ddd 1px solid;border-left:#ddd 1px solid;padding-bottom:20px;background-color:#eee;margin:15px 0px;padding-left:20px;padding-right:20px;border-top:#ddd 1px solid;border-right:#ddd 1px solid;padding-top:20px">' . nl2br(get_comment($parent_id)->comment_content) . '</p>
+    <p><span style="font-weight:bold;">' . trim($comment->comment_author) . '</span> 于' . trim($comment->comment_date) . ' 给您的回复如下: </p>
+    <p style="border-bottom:#ddd 1px solid;border-left:#ddd 1px solid;padding-bottom:20px;background-color:#eee;margin:15px 0px;padding-left:20px;padding-right:20px;border-top:#ddd 1px solid;border-right:#ddd 1px solid;padding-top:20px">' . nl2br($comment->comment_content) . '</p>
+    <p>您可以点击 <a style="color:#00bbff;text-decoration:none" href="' . htmlspecialchars(get_comment_link($parent_id)) . '" target="_blank">查看回复的完整内容</a></p>
+    <p>感谢你对 <a style="color:#00bbff;text-decoration:none" href="' . get_option('home') . '" target="_blank">' . get_option('blogname') . '</a> 的关注，如您有任何疑问，欢迎在博客留言，我会一一解答</p><p style="color:#A8979A;">(此邮件由系统自动发出，请勿回复。)</p></div></div>';
+    $from = "From: \"" . get_option('blogname') . "\" <$wp_email>";
+    $headers = "$from\nContent-Type: text/html; charset=" . get_option('blog_charset') . "\n";
+    wp_mail( $to, $subject, $message, $headers );
+    //echo 'mail to ', $to, '<br/> ' , $subject, $message; // for testing
+    }
 }
-add_action('wp_insert_comment', 'dmeng_comment_mail_notify' , 99, 2 );
-add_action('dmeng_comment_unapproved_to_approved', 'dmeng_comment_mail_notify' , 99, 2 );
-
-//~ 取消默认的评论邮件通知
-add_filter('comment_notification_recipients', '__return_false', 10, 1);
+add_action('wp_insert_comment', 'comment_mail_notify' , 99, 2 );
+add_action('dmeng_comment_unapproved_to_approved', 'comment_mail_notify' , 99, 2 );
 
 //~ 通过链接的消息状态参数改变消息状态
 function dmeng_msg_auto_status(){
